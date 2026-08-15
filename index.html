@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#04142f">
+<meta name="description" content="איתור אתר ההצבעה בפריימריז בליכוד — ששון ששי גואטה, 110 ברשימה.">
+<meta property="og:title" content="איפה מצביעים? | ששון ששי גואטה 110">
+<meta property="og:description" content="חיפוש חכם, GPS וניווט ישיר ב-Waze וב-Google Maps.">
+<meta property="og:type" content="website">
+<title>ששון ששי גואטה 110 | איפה מצביעים?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<a href="#finder" class="skip">דלג לאיתור קלפי</a>
+<div class="a11y"><button id="plus">A+</button><button id="minus">A−</button><button id="contrast">◐ ניגודיות</button></div>
+
+<header class="hero">
+  <div class="hero-bg">
+    <svg class="flag" viewBox="0 0 1200 720" preserveAspectRatio="none" aria-hidden="true">
+      <path class="flag-white" d="M0,95 C230,20 390,160 610,95 C820,35 1010,110 1200,45 L1200,590 C1000,655 820,565 610,625 C390,690 220,560 0,640 Z"/>
+      <path class="flag-blue" d="M0,160 C240,95 400,220 610,160 C840,95 1010,170 1200,110 L1200,145 C990,205 830,135 610,195 C390,255 230,130 0,195 Z"/>
+      <path class="flag-blue" d="M0,535 C225,465 400,590 610,525 C815,465 1000,535 1200,475 L1200,510 C995,570 820,505 610,560 C395,625 225,500 0,570 Z"/>
+      <g class="star" transform="translate(645 340) scale(1.35)">
+        <path d="M0,-92 79,45 -79,45 Z M0,92 79,-45 -79,-45 Z" fill-rule="evenodd"/>
+      </g>
+    </svg>
+    <div class="flare"></div><div class="wave"></div>
+  </div>
+  <div class="bsd">בס״ד</div>
+
+  <div class="hero-inner">
+    <section class="copy">
+      <img src="./assets/likud-logo.png" class="logo" alt="הליכוד">
+      <div class="eyebrow">חבר הכנסת</div>
+      <h1>ששון ששי<br>גואטה</h1>
+      <div class="slogan">מחובר לשטח. <span class="brush">פועל בשבילכם.</span></div>
+      <div class="meta"><span>◫ יום שני, 17.08.2026</span><span>⌖ קלפיות ברחבי הארץ</span><span>✓ ניווט ישיר</span></div>
+    </section>
+
+    <section class="visual" aria-label="ששון ששי גואטה, מספר 110 ברשימה">
+      <div class="halo"></div>
+      <div class="portrait-wrap"><img src="./assets/candidate.png" alt="ששון ששי גואטה"></div>
+      <div class="spark"></div>
+      <div class="number3d" aria-label="110 ברשימה">
+        <div class="digits"><span class="digit">1</span><span class="digit">1</span><span class="digit">0</span></div>
+        <div class="plate">מצביעים 110 ברשימה</div>
+      </div>
+    </section>
+  </div>
+</header>
+
+<main class="main" id="finder">
+  <section class="finder glass">
+    <div class="finder-head">
+      <div><h2>איפה מצביעים?</h2><p>חיפוש חכם לפי יישוב, אתר, רחוב או חלק מהכתובת — גם עם שגיאת כתיב קלה.</p></div>
+      <div class="chip">107 אתרי הצבעה</div>
+    </div>
+    <div class="controls">
+      <div class="searchbox"><span class="searchicon">⌕</span><input id="searchInput" type="search" autocomplete="off" placeholder="לדוגמה: עכו, בלומפילד, אבא חושי, פתח תקוה..."><button id="clearBtn" class="clear" aria-label="נקה חיפוש">×</button></div>
+      <button id="gpsBtn" class="gps"><span class="radar"><i></i></span><span id="gpsText">מצא קלפיות קרובות אליי</span></button>
+    </div>
+    <div class="quick"><button data-search="תל אביב">תל אביב</button><button data-search="ירושלים">ירושלים</button><button data-search="חיפה">חיפה</button><button data-search="באר שבע">באר שבע</button><button data-search="עכו">עכו</button></div>
+    <div class="help">המיקום אינו נשמר. GPS דורש HTTPS; אם ההרשאה חסומה אפשר לבחור יישוב ידנית.</div>
+    <div id="msg" class="message" aria-live="polite"></div>
+    <div id="fallback" class="fallback"><select id="citySelect" aria-label="בחר יישוב"></select><button id="useCity">הצג אתר הצבעה</button></div>
+  </section>
+
+  <section class="dashboard" id="dashboard">
+    <div class="map-panel glass">
+      <div class="panel-head"><div><h3>מפת אתרי ההצבעה</h3><p>לחצו על סמן להצגת פרטי האתר.</p></div><div class="chip">מפה חיה</div></div>
+      <div id="map"></div>
+    </div>
+    <div class="results-panel glass">
+      <div class="panel-head"><div><h3 id="resultsTitle">תוצאות קרובות</h3><p id="resultsSub">התחילו בחיפוש או השתמשו במיקום.</p></div><div class="chip">ניווט מהיר</div></div>
+      <div id="resultsList" class="results-list"></div>
+    </div>
+  </section>
+
+  <section class="info-strip">
+    <div class="info glass"><div class="ico">◫</div><b>יום הבחירות</b><span>יום שני, 17 באוגוסט</span></div>
+    <div class="info glass"><div class="ico">⌖</div><b>107 קלפיות</b><span>פריסה ברחבי הארץ</span></div>
+    <div class="info glass"><div class="ico">⇢</div><b>ניווט מהיר</b><span>Waze ו-Google Maps</span></div>
+    <div class="info glass"><div class="ico">✓</div><b>מותאם למובייל</b><span>חיפוש וניווט בלחיצה</span></div>
+  </section>
+
+  <section class="all-sites glass">
+    <div class="panel-head"><div><h3>כל אתרי ההצבעה</h3><p>בחרו אתר ישירות מהרשימה.</p></div><div class="chip">107 אתרים</div></div>
+    <div id="allList" class="all-list"></div>
+  </section>
+</main>
+
+<footer><div class="footer-inner"><img src="./assets/likud-logo.png" class="footer-logo" alt="הליכוד"><div class="footer-copy"><b>ששון ששי גואטה · 110</b>מחובר לשטח. פועל בשבילכם.</div></div></footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="./data.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
