@@ -44,7 +44,7 @@ function navs(x){
   };
 }
 function navButtonsHtml(n){
-  return `<a class="nav-icon waze" href="${n.w}" aria-label="ניווט ב-Waze" title="Waze"><img src="assets/waze-icon.png" alt="" width="32" height="32" loading="lazy" decoding="async"></a><a class="nav-icon maps" href="${n.g}" aria-label="ניווט ב-Google Maps" title="Google Maps"><img src="assets/google-maps-icon.png" alt="" width="32" height="32" loading="lazy" decoding="async"></a>`;
+  return `<a class="nav-icon waze" href="${n.w}" aria-label="ניווט ב-Waze" title="Waze"><img src="assets/waze-icon.png" alt="" width="22" height="22" loading="lazy" decoding="async"></a><a class="nav-icon maps" href="${n.g}" aria-label="ניווט ב-Google Maps" title="Google Maps"><img src="assets/google-maps-icon.png" alt="" width="22" height="22" loading="lazy" decoding="async"></a>`;
 }
 
 const searchInput=$("searchInput"),clearBtn=$("clearBtn"),resultsPanel=$("resultsPanel"),resultsList=$("resultsList"),
@@ -60,7 +60,7 @@ function initMap(){
   const icon=L.divIcon({className:"",html:'<div style="width:18px;height:18px;border-radius:50% 50% 50% 0;background:#12d8e4;border:3px solid #fff;transform:rotate(-45deg);box-shadow:0 0 0 6px #12d8e433,0 0 22px #12d8e4"></div>',iconSize:[24,24],iconAnchor:[12,20]});
   data.forEach(x=>{
     const n=navs(x);
-    const m=L.marker([x.lat,x.lng],{icon}).addTo(map).bindPopup(`<div dir="rtl"><b>${esc(x.city)}</b><br>${esc(x.site)}<br><small>${esc(x.address)}</small><div class="navs map-popup-navs">${navButtonsHtml(n)}</div></div>`);
+    const m=L.marker([x.lat,x.lng],{icon}).addTo(map).bindPopup(`<div dir="rtl"><b>${esc(x.city)}</b><br>${esc(x.site)}<br><small>${esc(x.address)}</small><div class="navs navs-pill map-popup-navs">${navButtonsHtml(n)}</div></div>`);
     markers.push({item:x,marker:m});
   });
   mapReady=true;
@@ -72,7 +72,7 @@ function focusMap(items){
 }
 function cardHtml(x){
   const n=navs(x),d=Number.isFinite(x.distance)?`<div class="distance">${x.distance.toFixed(1)} ק״מ<span>ממך</span></div>`:"";
-  return `<article class="result-card"><div><h4>${esc(x.city)}</h4><div class="site">${esc(x.site)}</div><div class="addr">${esc(x.address)}</div><div class="navs">${navButtonsHtml(n)}</div></div>${d}</article>`;
+  return `<article class="result-card"><div><h4>${esc(x.city)}</h4><div class="site">${esc(x.site)}</div><div class="result-foot"><div class="addr">${esc(x.address)}</div><div class="navs navs-pill">${navButtonsHtml(n)}</div></div></div>${d}</article>`;
 }
 function showResults(items,{title,sub,countLabel,isNearby=false}){
   if(!items.length){hideResults();return}
@@ -163,7 +163,7 @@ data.forEach((x,i)=>{
   const n=navs(x);
   const row=document.createElement("div");
   row.className="all-row";
-  row.innerHTML=`<div class="num">${i+1}</div><div class="all-row-body"><b>${esc(x.city)} · ${esc(x.site)}</b><small>${esc(x.address)}</small><div class="navs">${navButtonsHtml(n)}</div></div>`;
+  row.innerHTML=`<div class="num">${i+1}</div><div class="all-row-body"><b>${esc(x.city)} · ${esc(x.site)}</b><small>${esc(x.address)}</small></div><div class="navs navs-pill">${navButtonsHtml(n)}</div>`;
   all.appendChild(row);
 });
 
