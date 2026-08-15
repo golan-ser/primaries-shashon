@@ -71,6 +71,71 @@ function render(items,title="תוצאות חיפוש",sub="בחרו אתר ופ�
 function showMessage(text,type="info"){msg.textContent=text;msg.className=`message show ${type}`}
 function clearMessage(){msg.className="message";msg.textContent=""}
 
+const isMobile=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+function isInAppBrowser(){
+  const ua=navigator.userAgent||"";
+  return /FBAN|FBAV|Instagram|WhatsApp|Line\/|Twitter|LinkedInApp|Telegram|Messenger/i.test(ua);
+}
+function resetGpsBtn(){
+  gpsBtn.disabled=false;
+  gpsText.textContent="מצא קלפיות קרובות אליי";
+}
+function gpsErrorMessage(err){
+  if(!window.isSecureContext){
+    return "GPS זמין רק בחיבור מאובטח (HTTPS). פתחו את הקישור ב-Safari או Chrome.";
+  }
+  if(isInAppBrowser()){
+    return "הדפדפן שבו פתחתם את הקישור (למשל וואטסאפ) חוסם GPS. לחצו על ⋯ ובחרו «פתיחה בדפדפן».";
+  }
+  if(!err) return "לא הצלחנו לאתר מיקום. אפשר לבחור יישוב ידנית.";
+  if(err.code===1){
+    return "הגישה למיקום נחסמה. בהגדרות הדפדפן/הטלפון אפשרו מיקום לאתר זה, או בחרו יישוב ידנית.";
+  }
+  if(err.code===2) return "שירותי המיקום כבויים או לא זמינים כרגע. אפשר לבחור יישוב ידנית.";
+  if(err.code===3) return "איתור המיקום לקח יותר מדי זמן. נסו שוב או בחרו יישוב ידנית.";
+  return "לא הצלחנו לאתר מיקום. אפשר לבחור יישוב ידנית.";
+}
+function onGpsSuccess(p){
+  const nearest=data.map(x=>({...x,distance:distanceKm(p.coords.latitude,p.coords.longitude,x.lat,x.lng)})).sort((a,b)=>a.distance-b.distance).slice(0,4);
+  render(nearest,"הקלפיות הקרובות אליכם","מסודרות לפי מרחק אווירי משוער");
+  if(map&&window.L){
+    if(userMarker) map.removeLayer(userMarker);
+    userMarker=L.circleMarker([p.coords.latitude,p.coords.longitude],{radius:8,color:"#fff",weight:3,fillColor:"#0c65ff",fillOpacity:1}).addTo(map).bindPopup("המיקום שלך");
+  }
+  showMessage("המיקום נמצא בהצלחה.","info");
+  resetGpsBtn();
+}
+function onGpsError(err){
+  showMessage(gpsErrorMessage(err),"error");
+  fallback.classList.add("show");
+  resetGpsBtn();
+}
+function requestNearestPolling(){
+  clearMessage();
+  if(!navigator.geolocation){
+    showMessage("הדפדפן אינו תומך במיקום. בחרו יישוב ידנית.","error");
+    fallback.classList.add("show");
+    return;
+  }
+  if(!window.isSecureContext){
+    onGpsError(null);
+    fallback.classList.add("show");
+    return;
+  }
+  if(isInAppBrowser()){
+    onGpsError(null);
+    fallback.classList.add("show");
+    return;
+  }
+  gpsBtn.disabled=true;
+  gpsText.textContent="מאתרים מיקום...";
+  navigator.geolocation.getCurrentPosition(onGpsSuccess,onGpsError,{
+    timeout:isMobile?20000:10000,
+    maximumAge:0,
+    enableHighAccuracy:true
+  });
+}
+
 let timer;
 searchInput.addEventListener("input",()=>{
   clearTimeout(timer);clearBtn.classList.toggle("show",searchInput.value.length>0);clearMessage();
@@ -80,18 +145,9 @@ searchInput.addEventListener("input",()=>{
 clearBtn.addEventListener("click",()=>{searchInput.value="";clearBtn.classList.remove("show");searchInput.focus();render([],"תוצאות קרובות","התחילו בחיפוש או השתמשו במיקום")});
 document.querySelectorAll("[data-search]").forEach(b=>b.addEventListener("click",()=>{searchInput.value=b.dataset.search;clearBtn.classList.add("show");searchInput.dispatchEvent(new Event("input"))}));
 
-gpsBtn.addEventListener("click",()=>{
-  clearMessage();gpsBtn.disabled=true;gpsText.textContent="מאתרים מיקום...";
-  if(!navigator.geolocation){showMessage("הדפדפן אינו תומך במיקום. בחרו יישוב ידנית.","error");fallback.classList.add("show");gpsBtn.disabled=false;gpsText.textContent="מצא קלפיות קרובות אליי";return}
-  navigator.geolocation.getCurrentPosition(p=>{
-    const nearest=data.map(x=>({...x,distance:distanceKm(p.coords.latitude,p.coords.longitude,x.lat,x.lng)})).sort((a,b)=>a.distance-b.distance).slice(0,4);
-    render(nearest,"הקלפיות הקרובות אליכם","מסודרות לפי מרחק אווירי משוער");
-    if(map&&window.L){if(userMarker)map.removeLayer(userMarker);userMarker=L.circleMarker([p.coords.latitude,p.coords.longitude],{radius:8,color:"#fff",weight:3,fillColor:"#0c65ff",fillOpacity:1}).addTo(map).bindPopup("המיקום שלך");}
-    showMessage("המיקום נמצא בהצלחה.","info");gpsBtn.disabled=false;gpsText.textContent="מצא קלפיות קרובות אליי";
-  },()=>{
-    showMessage(location.protocol==="file:"?"בקובץ מקומי GPS עשוי להיחסם. לאחר העלאה ל-HTTPS הוא יעבוד; בינתיים אפשר לבחור יישוב.":"לא ניתנה הרשאת מיקום. אפשר לבחור יישוב ידנית.","error");
-    fallback.classList.add("show");gpsBtn.disabled=false;gpsText.textContent="מצא קלפיות קרובות אליי";
-  },{timeout:9000,maximumAge:120000,enableHighAccuracy:false});
+gpsBtn.addEventListener("click",(e)=>{
+  e.preventDefault();
+  requestNearestPolling();
 });
 
 [...new Set(data.map(x=>x.city))].sort((a,b)=>a.localeCompare(b,"he")).forEach(c=>{const o=document.createElement("option");o.value=c;o.textContent=c;citySelect.appendChild(o)});
