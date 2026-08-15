@@ -43,6 +43,11 @@ function navs(x){
     g:`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(ll)}`
   };
 }
+const ICON_WAZE=`<svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#05c8f7"/><path fill="#fff" d="M12 5.5c-2.5 0-4.2 1.8-4.2 4.1 0 2.8 2.4 5.2 4.2 7.2 1.8-2 4.2-4.4 4.2-7.2 0-2.3-1.7-4.1-4.2-4.1zm0 2.3c1 0 1.7.8 1.7 1.8s-.7 1.8-1.7 1.8-1.7-.8-1.7-1.8.7-1.8 1.7-1.8z"/><circle cx="9.3" cy="9.2" r=".75" fill="#05c8f7"/><circle cx="14.7" cy="9.2" r=".75" fill="#05c8f7"/><path fill="none" stroke="#05c8f7" stroke-width="1.1" stroke-linecap="round" d="M9.8 11.8c.7.7 1.6 1 2.2 1s1.5-.3 2.2-1"/></svg>`;
+const ICON_MAPS=`<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#ea4335" d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/><circle cx="12" cy="9" r="2.6" fill="#fff"/><circle cx="12" cy="9" r="1.2" fill="#4285f4"/></svg>`;
+function navButtonsHtml(n){
+  return `<a class="nav-icon waze" href="${n.w}" aria-label="ניווט ב-Waze" title="Waze">${ICON_WAZE}</a><a class="nav-icon maps" href="${n.g}" aria-label="ניווט ב-Google Maps" title="Google Maps">${ICON_MAPS}</a>`;
+}
 
 const searchInput=$("searchInput"),clearBtn=$("clearBtn"),resultsPanel=$("resultsPanel"),resultsList=$("resultsList"),
       resultsSummaryTitle=$("resultsSummaryTitle"),resultsSummaryCount=$("resultsSummaryCount"),resultsSub=$("resultsSub"),
@@ -57,7 +62,7 @@ function initMap(){
   const icon=L.divIcon({className:"",html:'<div style="width:18px;height:18px;border-radius:50% 50% 50% 0;background:#12d8e4;border:3px solid #fff;transform:rotate(-45deg);box-shadow:0 0 0 6px #12d8e433,0 0 22px #12d8e4"></div>',iconSize:[24,24],iconAnchor:[12,20]});
   data.forEach(x=>{
     const n=navs(x);
-    const m=L.marker([x.lat,x.lng],{icon}).addTo(map).bindPopup(`<div dir="rtl"><b>${esc(x.city)}</b><br>${esc(x.site)}<br><small>${esc(x.address)}</small><div class="navs" style="margin-top:8px"><a class="waze" href="${n.w}">Waze</a> <a href="${n.g}">Google Maps</a></div></div>`);
+    const m=L.marker([x.lat,x.lng],{icon}).addTo(map).bindPopup(`<div dir="rtl"><b>${esc(x.city)}</b><br>${esc(x.site)}<br><small>${esc(x.address)}</small><div class="navs map-popup-navs">${navButtonsHtml(n)}</div></div>`);
     markers.push({item:x,marker:m});
   });
   mapReady=true;
@@ -69,7 +74,7 @@ function focusMap(items){
 }
 function cardHtml(x){
   const n=navs(x),d=Number.isFinite(x.distance)?`<div class="distance">${x.distance.toFixed(1)} ק״מ<span>ממך</span></div>`:"";
-  return `<article class="result-card"><div><h4>${esc(x.city)}</h4><div class="site">${esc(x.site)}</div><div class="addr">${esc(x.address)}</div><div class="navs"><a class="waze" href="${n.w}">Waze</a><a href="${n.g}">Google Maps</a></div></div>${d}</article>`;
+  return `<article class="result-card"><div><h4>${esc(x.city)}</h4><div class="site">${esc(x.site)}</div><div class="addr">${esc(x.address)}</div><div class="navs">${navButtonsHtml(n)}</div></div>${d}</article>`;
 }
 function showResults(items,{title,sub,countLabel,isNearby=false}){
   if(!items.length){hideResults();return}
@@ -160,7 +165,7 @@ data.forEach((x,i)=>{
   const n=navs(x);
   const row=document.createElement("div");
   row.className="all-row";
-  row.innerHTML=`<div class="num">${i+1}</div><div class="all-row-body"><b>${esc(x.city)} · ${esc(x.site)}</b><small>${esc(x.address)}</small><div class="navs"><a class="waze" href="${n.w}">Waze</a><a href="${n.g}">Google Maps</a></div></div>`;
+  row.innerHTML=`<div class="num">${i+1}</div><div class="all-row-body"><b>${esc(x.city)} · ${esc(x.site)}</b><small>${esc(x.address)}</small><div class="navs">${navButtonsHtml(n)}</div></div>`;
   all.appendChild(row);
 });
 
