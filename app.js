@@ -37,36 +37,74 @@ function searchSemantic(q){
 function esc(s){return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
 function distanceKm(a,b,c,d){const R=6371,r=x=>x*Math.PI/180,dl=r(c-a),dn=r(d-b);const z=Math.sin(dl/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dn/2)**2;return R*2*Math.atan2(Math.sqrt(z),Math.sqrt(1-z))}
 function navs(x){
-  // GPS coords for deterministic navigation; address is still shown to the user.
   const ll=`${x.lat},${x.lng}`;
-  return {w:`https://waze.com/ul?ll=${encodeURIComponent(ll)}&navigate=yes`,g:`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(ll)}`}
+  return {
+    w:`https://waze.com/ul?ll=${encodeURIComponent(ll)}&navigate=yes`,
+    g:`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(ll)}`
+  };
 }
 
-const searchInput=$("searchInput"),clearBtn=$("clearBtn"),resultsList=$("resultsList"),resultsTitle=$("resultsTitle"),resultsSub=$("resultsSub"),
-      msg=$("msg"),fallback=$("fallback"),citySelect=$("citySelect"),gpsBtn=$("gpsBtn"),gpsText=$("gpsText");
+const searchInput=$("searchInput"),clearBtn=$("clearBtn"),resultsPanel=$("resultsPanel"),resultsList=$("resultsList"),
+      resultsSummaryTitle=$("resultsSummaryTitle"),resultsSummaryCount=$("resultsSummaryCount"),resultsSub=$("resultsSub"),
+      msg=$("msg"),fallback=$("fallback"),citySelect=$("citySelect"),gpsBtn=$("gpsBtn"),gpsText=$("gpsText"),
+      navSheet=$("navSheet");
 
-let map=null,markers=[],userMarker=null;
+let map=null,markers=[],userMarker=null,mapReady=false;
+
 function initMap(){
   if(!window.L){$("map").innerHTML='<div class="map-fallback">המפה לא נטענה — החיפוש והניווט עדיין זמינים.</div>';return}
   map=L.map("map",{zoomControl:true,scrollWheelZoom:false}).setView([31.78,34.95],7);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"}).addTo(map);
   const icon=L.divIcon({className:"",html:'<div style="width:18px;height:18px;border-radius:50% 50% 50% 0;background:#12d8e4;border:3px solid #fff;transform:rotate(-45deg);box-shadow:0 0 0 6px #12d8e433,0 0 22px #12d8e4"></div>',iconSize:[24,24],iconAnchor:[12,20]});
-  data.forEach(x=>{const m=L.marker([x.lat,x.lng],{icon}).addTo(map).bindPopup(`<div dir="rtl"><b>${esc(x.city)}</b><br>${esc(x.site)}<br><small>${esc(x.address)}</small></div>`);markers.push({item:x,marker:m})});
+  data.forEach(x=>{
+    const m=L.marker([x.lat,x.lng],{icon}).addTo(map).bindPopup(`<div dir="rtl"><b>${esc(x.city)}</b><br>${esc(x.site)}<br><small>${esc(x.address)}</small></div>`);
+    m.on("click",()=>openNavSheet(x));
+    markers.push({item:x,marker:m});
+  });
+  mapReady=true;
 }
 function focusMap(items){
   if(!map||!items.length)return;
-  if(items.length===1){map.flyTo([items[0].lat,items[0].lng],13,{duration:.7});const found=markers.find(m=>m.item.city===items[0].city);if(found)found.marker.openPopup()}
+  if(items.length===1){map.flyTo([items[0].lat,items[0].lng],13,{duration:.7})}
   else{const bounds=L.latLngBounds(items.map(x=>[x.lat,x.lng]));map.fitBounds(bounds.pad(.2))}
 }
 function cardHtml(x){
   const n=navs(x),d=Number.isFinite(x.distance)?`<div class="distance">${x.distance.toFixed(1)} ק״מ<span>ממך</span></div>`:"";
   return `<article class="result-card"><div><h4>${esc(x.city)}</h4><div class="site">${esc(x.site)}</div><div class="addr">${esc(x.address)}</div><div class="navs"><a class="waze" href="${n.w}" target="_blank" rel="noopener">Waze</a><a href="${n.g}" target="_blank" rel="noopener">Google Maps</a></div></div>${d}</article>`;
 }
-function render(items,title="תוצאות חיפוש",sub="בחרו אתר ופתחו ניווט"){
-  resultsTitle.textContent=title;resultsSub.textContent=sub;resultsList.innerHTML="";
-  if(!items.length){resultsList.innerHTML='<div class="empty-results"><strong>לא מצאנו התאמה ברורה</strong>נסו שם יישוב, אתר, רחוב או חלק מהכתובת — גם עם שגיאת כתיב קלה.</div>';return}
-  items.forEach(x=>resultsList.insertAdjacentHTML("beforeend",cardHtml(x)));
-  focusMap(items);
+function showResults(items,{title,sub,countLabel,isNearby=false}){
+  if(!items.length){hideResults();return}
+  resultsSummaryTitle.textContent=title;
+  resultsSummaryCount.textContent=countLabel||`${items.length} תוצאות`;
+  resultsSub.textContent=sub||(isNearby?"מסודרות לפי מרחק אווירי — לחצו על Waze או Google Maps.":"לחצו על Waze או Google Maps לניווט.");
+  resultsList.innerHTML=items.map(cardHtml).join("");
+  resultsPanel.open=true;
+  resultsPanel.classList.toggle("nearby",!!isNearby);
+  focusMap(items.slice(0,8));
+  if(isNearby) resultsPanel.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function hideResults(){
+  resultsPanel.open=false;
+  resultsPanel.classList.remove("nearby");
+  resultsList.innerHTML="";
+  resultsSummaryCount.textContent="";
+}
+function openNavSheet(x){
+  const n=navs(x);
+  $("navSheetTitle").textContent=x.city;
+  $("navSheetSite").textContent=x.site||"אתר הצבעה";
+  $("navSheetAddr").textContent=x.address;
+  $("navWaze").href=n.w;
+  $("navGoogle").href=n.g;
+  navSheet.hidden=false;
+  navSheet.setAttribute("aria-hidden","false");
+  document.body.classList.add("sheet-open");
+  focusMap([x]);
+}
+function closeNavSheet(){
+  navSheet.hidden=true;
+  navSheet.setAttribute("aria-hidden","true");
+  document.body.classList.remove("sheet-open");
 }
 function showMessage(text,type="info"){msg.textContent=text;msg.className=`message show ${type}`}
 function clearMessage(){msg.className="message";msg.textContent=""}
@@ -81,23 +119,17 @@ function resetGpsBtn(){
   gpsText.textContent="מצא קלפיות קרובות אליי";
 }
 function gpsErrorMessage(err){
-  if(!window.isSecureContext){
-    return "GPS זמין רק בחיבור מאובטח (HTTPS). פתחו את הקישור ב-Safari או Chrome.";
-  }
-  if(isInAppBrowser()){
-    return "הדפדפן שבו פתחתם את הקישור (למשל וואטסאפ) חוסם GPS. לחצו על ⋯ ובחרו «פתיחה בדפדפן».";
-  }
+  if(!window.isSecureContext) return "GPS זמין רק בחיבור מאובטח (HTTPS). פתחו את הקישור ב-Safari או Chrome.";
+  if(isInAppBrowser()) return "הדפדפן שבו פתחתם את הקישור (למשל וואטסאפ) חוסם GPS. לחצו על ⋯ ובחרו «פתיחה בדפדפן».";
   if(!err) return "לא הצלחנו לאתר מיקום. אפשר לבחור יישוב ידנית.";
-  if(err.code===1){
-    return "הגישה למיקום נחסמה. בהגדרות הדפדפן/הטלפון אפשרו מיקום לאתר זה, או בחרו יישוב ידנית.";
-  }
+  if(err.code===1) return "הגישה למיקום נחסמה. בהגדרות הדפדפן/הטלפון אפשרו מיקום לאתר זה, או בחרו יישוב ידנית.";
   if(err.code===2) return "שירותי המיקום כבויים או לא זמינים כרגע. אפשר לבחור יישוב ידנית.";
   if(err.code===3) return "איתור המיקום לקח יותר מדי זמן. נסו שוב או בחרו יישוב ידנית.";
   return "לא הצלחנו לאתר מיקום. אפשר לבחור יישוב ידנית.";
 }
 function onGpsSuccess(p){
   const nearest=data.map(x=>({...x,distance:distanceKm(p.coords.latitude,p.coords.longitude,x.lat,x.lng)})).sort((a,b)=>a.distance-b.distance).slice(0,4);
-  render(nearest,"הקלפיות הקרובות אליכם","מסודרות לפי מרחק אווירי משוער");
+  showResults(nearest,{title:"הקלפיות הקרובות אליכם",sub:"מסודרות לפי מרחק אווירי — לחצו על Waze או Google Maps.",countLabel:`${nearest.length} קרובות`,isNearby:true});
   if(map&&window.L){
     if(userMarker) map.removeLayer(userMarker);
     userMarker=L.circleMarker([p.coords.latitude,p.coords.longitude],{radius:8,color:"#fff",weight:3,fillColor:"#0c65ff",fillOpacity:1}).addTo(map).bindPopup("המיקום שלך");
@@ -112,49 +144,55 @@ function onGpsError(err){
 }
 function requestNearestPolling(){
   clearMessage();
-  if(!navigator.geolocation){
-    showMessage("הדפדפן אינו תומך במיקום. בחרו יישוב ידנית.","error");
-    fallback.classList.add("show");
-    return;
-  }
-  if(!window.isSecureContext){
-    onGpsError(null);
-    fallback.classList.add("show");
-    return;
-  }
-  if(isInAppBrowser()){
-    onGpsError(null);
-    fallback.classList.add("show");
-    return;
-  }
+  if(!navigator.geolocation){showMessage("הדפדפן אינו תומך במיקום. בחרו יישוב ידנית.","error");fallback.classList.add("show");return}
+  if(!window.isSecureContext||isInAppBrowser()){onGpsError(null);fallback.classList.add("show");return}
   gpsBtn.disabled=true;
   gpsText.textContent="מאתרים מיקום...";
-  navigator.geolocation.getCurrentPosition(onGpsSuccess,onGpsError,{
-    timeout:isMobile?20000:10000,
-    maximumAge:0,
-    enableHighAccuracy:true
-  });
+  navigator.geolocation.getCurrentPosition(onGpsSuccess,onGpsError,{timeout:isMobile?20000:10000,maximumAge:0,enableHighAccuracy:true});
 }
 
 let timer;
 searchInput.addEventListener("input",()=>{
   clearTimeout(timer);clearBtn.classList.toggle("show",searchInput.value.length>0);clearMessage();
-  timer=setTimeout(()=>{const q=searchInput.value.trim();if(!q){render([],"תוצאות קרובות","התחילו בחיפוש או השתמשו במיקום");return}
-    render(searchSemantic(q).slice(0,8),`תוצאות עבור “${q}”`,"ממוינות לפי ההתאמה הטובה ביותר");},120)
+  timer=setTimeout(()=>{
+    const q=searchInput.value.trim();
+    if(!q){hideResults();return}
+    const items=searchSemantic(q).slice(0,8);
+    showResults(items,{title:`תוצאות עבור “${q}”`,sub:"ממוינות לפי ההתאמה הטובה ביותר."});
+  },120);
 });
-clearBtn.addEventListener("click",()=>{searchInput.value="";clearBtn.classList.remove("show");searchInput.focus();render([],"תוצאות קרובות","התחילו בחיפוש או השתמשו במיקום")});
+clearBtn.addEventListener("click",()=>{searchInput.value="";clearBtn.classList.remove("show");searchInput.focus();hideResults()});
 document.querySelectorAll("[data-search]").forEach(b=>b.addEventListener("click",()=>{searchInput.value=b.dataset.search;clearBtn.classList.add("show");searchInput.dispatchEvent(new Event("input"))}));
 
-gpsBtn.addEventListener("click",(e)=>{
-  e.preventDefault();
-  requestNearestPolling();
-});
+gpsBtn.addEventListener("click",(e)=>{e.preventDefault();searchInput.value="";clearBtn.classList.remove("show");requestNearestPolling()});
+
+navSheet.querySelectorAll("[data-close]").forEach(el=>el.addEventListener("click",closeNavSheet));
+document.addEventListener("keydown",e=>{if(e.key==="Escape") closeNavSheet()});
 
 [...new Set(data.map(x=>x.city))].sort((a,b)=>a.localeCompare(b,"he")).forEach(c=>{const o=document.createElement("option");o.value=c;o.textContent=c;citySelect.appendChild(o)});
-$("useCity").addEventListener("click",()=>{const city=citySelect.value,items=data.filter(x=>x.city===city);render(items,`אתר ההצבעה ב${city}`,"לפי רשימת אתרי ההצבעה")});
+$("useCity").addEventListener("click",()=>{
+  const city=citySelect.value,items=data.filter(x=>x.city===city);
+  if(items.length===1) openNavSheet(items[0]);
+  else showResults(items,{title:`אתרי ההצבעה ב${city}`,sub:"לפי רשימת אתרי ההצבעה."});
+});
 
-const all=$("allList");data.forEach((x,i)=>{const row=document.createElement("div");row.className="all-row";row.innerHTML=`<div class="num">${i+1}</div><div><b>${esc(x.city)} · ${esc(x.site)}</b><small>${esc(x.address)}</small></div>`;row.addEventListener("click",()=>{render([x],`אתר ההצבעה ב${x.city}`,"נבחר מתוך הרשימה");window.scrollTo({top:$("dashboard").offsetTop-70,behavior:"smooth"})});all.appendChild(row)});
+const all=$("allList");
+data.forEach((x,i)=>{
+  const row=document.createElement("button");
+  row.type="button";
+  row.className="all-row";
+  row.innerHTML=`<div class="num">${i+1}</div><div class="all-row-body"><b>${esc(x.city)} · ${esc(x.site)}</b><small>${esc(x.address)}</small><span class="all-row-cta">Waze / Maps ⇢</span></div>`;
+  row.addEventListener("click",()=>openNavSheet(x));
+  all.appendChild(row);
+});
 
-let fs=1;$("plus").onclick=()=>{fs=Math.min(1.35,fs+.1);document.documentElement.style.setProperty("--fs",fs)};$("minus").onclick=()=>{fs=Math.max(.85,fs-.1);document.documentElement.style.setProperty("--fs",fs)};$("contrast").onclick=()=>document.body.classList.toggle("hc");
+document.querySelector(".map-wrap")?.addEventListener("toggle",e=>{
+  if(e.target.open && mapReady && map) setTimeout(()=>map.invalidateSize(),120);
+});
 
-window.addEventListener("load",()=>{initMap();render([],"תוצאות קרובות","התחילו בחיפוש או השתמשו במיקום")});
+let fs=1;
+$("plus").onclick=()=>{fs=Math.min(1.35,fs+.1);document.documentElement.style.setProperty("--fs",fs)};
+$("minus").onclick=()=>{fs=Math.max(.85,fs-.1);document.documentElement.style.setProperty("--fs",fs)};
+$("contrast").onclick=()=>document.body.classList.toggle("hc");
+
+window.addEventListener("load",()=>initMap());

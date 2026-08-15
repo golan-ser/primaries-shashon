@@ -67,18 +67,12 @@
     <div class="quick"><button data-search="תל אביב">תל אביב</button><button data-search="ירושלים">ירושלים</button><button data-search="חיפה">חיפה</button><button data-search="באר שבע">באר שבע</button><button data-search="עכו">עכו</button></div>
     <div class="help">המיקום אינו נשמר. ל-GPS פתחו ב-Safari או Chrome (לא מתוך וואטסאפ). אם לא מופיעה בקשת הרשאה — בחרו יישוב ידנית למטה.</div>
     <div id="msg" class="message" aria-live="polite"></div>
-    <div id="fallback" class="fallback"><select id="citySelect" aria-label="בחר יישוב"></select><button id="useCity">הצג אתר הצבעה</button></div>
-  </section>
-
-  <section class="dashboard" id="dashboard">
-    <div class="map-panel glass">
-      <div class="panel-head"><div><h3>מפת אתרי ההצבעה</h3><p>לחצו על סמן להצגת פרטי האתר.</p></div><div class="chip">מפה חיה</div></div>
-      <div id="map"></div>
-    </div>
-    <div class="results-panel glass">
-      <div class="panel-head"><div><h3 id="resultsTitle">תוצאות קרובות</h3><p id="resultsSub">התחילו בחיפוש או השתמשו במיקום.</p></div><div class="chip">ניווט מהיר</div></div>
+    <details id="resultsPanel" class="results-panel">
+      <summary class="results-summary"><span id="resultsSummaryTitle">תוצאות קרובות</span><span id="resultsSummaryCount" class="chip"></span></summary>
+      <p id="resultsSub" class="results-sub">לחצו על Waze או Google Maps לניווט.</p>
       <div id="resultsList" class="results-list"></div>
-    </div>
+    </details>
+    <div id="fallback" class="fallback"><select id="citySelect" aria-label="בחר יישוב"></select><button id="useCity">הצג אתר הצבעה</button></div>
   </section>
 
   <section class="info-strip">
@@ -89,10 +83,29 @@
   </section>
 
   <section class="all-sites glass">
-    <div class="panel-head"><div><h3>כל אתרי ההצבעה</h3><p>בחרו אתר ישירות מהרשימה.</p></div><div class="chip">107 אתרים</div></div>
+    <div class="panel-head"><div><h3>כל אתרי ההצבעה</h3><p>לחצו על אתר — ייפתח Waze או Google Maps.</p></div><div class="chip">107 אתרים</div></div>
     <div id="allList" class="all-list"></div>
   </section>
+
+  <details class="map-wrap glass">
+    <summary class="map-summary"><span>מפת כל אתרי ההצבעה</span><span class="chip">107 סמנים</span></summary>
+    <div id="map"></div>
+  </details>
 </main>
+
+<div id="navSheet" class="nav-sheet" hidden aria-hidden="true">
+  <div class="nav-sheet-backdrop" data-close></div>
+  <div class="nav-sheet-panel" role="dialog" aria-labelledby="navSheetTitle">
+    <div class="nav-sheet-head">
+      <div><h3 id="navSheetTitle"></h3><p id="navSheetSite"></p><small id="navSheetAddr"></small></div>
+      <button type="button" class="nav-sheet-close" data-close aria-label="סגור">×</button>
+    </div>
+    <div class="nav-sheet-actions">
+      <a id="navWaze" class="nav-sheet-btn waze" href="#" target="_blank" rel="noopener">פתח ב-Waze</a>
+      <a id="navGoogle" class="nav-sheet-btn google" href="#" target="_blank" rel="noopener">פתח ב-Google Maps</a>
+    </div>
+  </div>
+</div>
 
 <footer><div class="footer-inner"><img src="./assets/likud-logo.png" class="footer-logo" alt="הליכוד"><div class="footer-copy"><b>ששון ששי גואטה · 110</b>מחובר לשטח. פועל בשבילכם.</div></div></footer>
 
