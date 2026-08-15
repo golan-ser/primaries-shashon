@@ -46,8 +46,7 @@ function navs(x){
 
 const searchInput=$("searchInput"),clearBtn=$("clearBtn"),resultsPanel=$("resultsPanel"),resultsList=$("resultsList"),
       resultsSummaryTitle=$("resultsSummaryTitle"),resultsSummaryCount=$("resultsSummaryCount"),resultsSub=$("resultsSub"),
-      msg=$("msg"),fallback=$("fallback"),citySelect=$("citySelect"),gpsBtn=$("gpsBtn"),gpsText=$("gpsText"),
-      navSheet=$("navSheet");
+      msg=$("msg"),fallback=$("fallback"),citySelect=$("citySelect"),gpsBtn=$("gpsBtn"),gpsText=$("gpsText");
 
 let map=null,markers=[],userMarker=null,mapReady=false;
 
@@ -57,8 +56,8 @@ function initMap(){
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"}).addTo(map);
   const icon=L.divIcon({className:"",html:'<div style="width:18px;height:18px;border-radius:50% 50% 50% 0;background:#12d8e4;border:3px solid #fff;transform:rotate(-45deg);box-shadow:0 0 0 6px #12d8e433,0 0 22px #12d8e4"></div>',iconSize:[24,24],iconAnchor:[12,20]});
   data.forEach(x=>{
-    const m=L.marker([x.lat,x.lng],{icon}).addTo(map).bindPopup(`<div dir="rtl"><b>${esc(x.city)}</b><br>${esc(x.site)}<br><small>${esc(x.address)}</small></div>`);
-    m.on("click",()=>openNavSheet(x));
+    const n=navs(x);
+    const m=L.marker([x.lat,x.lng],{icon}).addTo(map).bindPopup(`<div dir="rtl"><b>${esc(x.city)}</b><br>${esc(x.site)}<br><small>${esc(x.address)}</small><div class="navs" style="margin-top:8px"><a class="waze" href="${n.w}">Waze</a> <a href="${n.g}">Google Maps</a></div></div>`);
     markers.push({item:x,marker:m});
   });
   mapReady=true;
@@ -70,7 +69,7 @@ function focusMap(items){
 }
 function cardHtml(x){
   const n=navs(x),d=Number.isFinite(x.distance)?`<div class="distance">${x.distance.toFixed(1)} ק״מ<span>ממך</span></div>`:"";
-  return `<article class="result-card"><div><h4>${esc(x.city)}</h4><div class="site">${esc(x.site)}</div><div class="addr">${esc(x.address)}</div><div class="navs"><a class="waze" href="${n.w}" target="_blank" rel="noopener">Waze</a><a href="${n.g}" target="_blank" rel="noopener">Google Maps</a></div></div>${d}</article>`;
+  return `<article class="result-card"><div><h4>${esc(x.city)}</h4><div class="site">${esc(x.site)}</div><div class="addr">${esc(x.address)}</div><div class="navs"><a class="waze" href="${n.w}">Waze</a><a href="${n.g}">Google Maps</a></div></div>${d}</article>`;
 }
 function showResults(items,{title,sub,countLabel,isNearby=false}){
   if(!items.length){hideResults();return}
@@ -88,23 +87,6 @@ function hideResults(){
   resultsPanel.classList.remove("nearby");
   resultsList.innerHTML="";
   resultsSummaryCount.textContent="";
-}
-function openNavSheet(x){
-  const n=navs(x);
-  $("navSheetTitle").textContent=x.city;
-  $("navSheetSite").textContent=x.site||"אתר הצבעה";
-  $("navSheetAddr").textContent=x.address;
-  $("navWaze").href=n.w;
-  $("navGoogle").href=n.g;
-  navSheet.hidden=false;
-  navSheet.setAttribute("aria-hidden","false");
-  document.body.classList.add("sheet-open");
-  focusMap([x]);
-}
-function closeNavSheet(){
-  navSheet.hidden=true;
-  navSheet.setAttribute("aria-hidden","true");
-  document.body.classList.remove("sheet-open");
 }
 function showMessage(text,type="info"){msg.textContent=text;msg.className=`message show ${type}`}
 function clearMessage(){msg.className="message";msg.textContent=""}
@@ -166,23 +148,19 @@ document.querySelectorAll("[data-search]").forEach(b=>b.addEventListener("click"
 
 gpsBtn.addEventListener("click",(e)=>{e.preventDefault();searchInput.value="";clearBtn.classList.remove("show");requestNearestPolling()});
 
-navSheet.querySelectorAll("[data-close]").forEach(el=>el.addEventListener("click",closeNavSheet));
-document.addEventListener("keydown",e=>{if(e.key==="Escape") closeNavSheet()});
-
 [...new Set(data.map(x=>x.city))].sort((a,b)=>a.localeCompare(b,"he")).forEach(c=>{const o=document.createElement("option");o.value=c;o.textContent=c;citySelect.appendChild(o)});
 $("useCity").addEventListener("click",()=>{
   const city=citySelect.value,items=data.filter(x=>x.city===city);
-  if(items.length===1) openNavSheet(items[0]);
+  if(items.length===1) window.location.href=navs(items[0]).w;
   else showResults(items,{title:`אתרי ההצבעה ב${city}`,sub:"לפי רשימת אתרי ההצבעה."});
 });
 
 const all=$("allList");
 data.forEach((x,i)=>{
-  const row=document.createElement("button");
-  row.type="button";
+  const n=navs(x);
+  const row=document.createElement("div");
   row.className="all-row";
-  row.innerHTML=`<div class="num">${i+1}</div><div class="all-row-body"><b>${esc(x.city)} · ${esc(x.site)}</b><small>${esc(x.address)}</small><span class="all-row-cta">Waze / Maps ⇢</span></div>`;
-  row.addEventListener("click",()=>openNavSheet(x));
+  row.innerHTML=`<div class="num">${i+1}</div><div class="all-row-body"><b>${esc(x.city)} · ${esc(x.site)}</b><small>${esc(x.address)}</small><div class="navs"><a class="waze" href="${n.w}">Waze</a><a href="${n.g}">Google Maps</a></div></div>`;
   all.appendChild(row);
 });
 
