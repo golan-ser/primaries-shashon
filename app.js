@@ -104,6 +104,16 @@ function isInAppBrowser(){
   const ua=navigator.userAgent||"";
   return /FBAN|FBAV|Instagram|WhatsApp|Line\/|Twitter|LinkedInApp|Telegram|Messenger/i.test(ua);
 }
+function isChromeMobile(){
+  const ua=navigator.userAgent||"";
+  return isMobile&&(/CriOS|Chrome/i.test(ua)&&!/EdgA|EdgiOS|OPR|SamsungBrowser/i.test(ua));
+}
+function locationDeniedHelp(){
+  if(isIOS&&isChromeMobile()) return "Chrome חוסם מיקום. הגדרות iPhone ← Chrome ← מיקום: «בזמן שימוש». או: הגדרות ← פרטיות ← שירותי מיקום ← Chrome. אפשר גם לבחור יישוב ידנית למטה.";
+  if(isSafariBrowser()) return "Safari חוסם מיקום. הגדרות iPhone ← Safari ← מיקום: «שאל». או: הגדרות ← פרטיות ← שירותי מיקום ← Safari. אפשר גם לבחור יישוב ידנית למטה.";
+  if(isMobile) return "הגישה למיקום נחסמה. בהגדרות הטלפון אפשרו מיקום לדפדפן ולאתר sasson110.co.il, או בחרו יישוב ידנית למטה.";
+  return "הגישה למיקום נחסמה. אפשרו מיקום בדפדפן לאתר זה, או בחרו יישוב ידנית למטה.";
+}
 function resetGpsBtn(){
   gpsBtn.disabled=false;
   gpsText.textContent="מצא קלפיות קרובות אליי";
@@ -112,10 +122,7 @@ function gpsErrorMessage(err){
   if(!window.isSecureContext) return "GPS זמין רק בחיבור מאובטח (HTTPS). פתחו את הקישור ב-Safari או Chrome.";
   if(isInAppBrowser()) return "הדפדפן שבו פתחתם את הקישור (למשל וואטסאפ) חוסם GPS. לחצו על ⋯ ובחרו «פתיחה בדפדפן».";
   if(!err) return "לא הצלחנו לאתר מיקום. אפשר לבחור יישוב ידנית.";
-  if(err.code===1){
-    if(isSafariBrowser()) return "Safari חוסם מיקום לאתר זה. הגדרות iPhone ← Safari ← מיקום: «שאל» או «בזמן שימוש». או: הגדרות ← פרטיות ← שירותי מיקום ← Safari — ודאו שמופעל. אפשר גם לבחור יישוב ידנית.";
-    return "הגישה למיקום נחסמה. בהגדרות הדפדפן/הטלפון אפשרו מיקום לאתר זה, או בחרו יישוב ידנית.";
-  }
+  if(err.code===1) return locationDeniedHelp();
   if(err.code===2) return "שירותי המיקום כבויים או לא זמינים כרגע. ודאו ש«שירותי מיקום» פועלים בהגדרות ה-iPhone. אפשר לבחור יישוב ידנית.";
   if(err.code===3) return isSafariBrowser()
     ? "Safari לא הצליח לאתר מיקום בזמן. נסו שוב בחוץ/ליד חלון, או בחרו יישוב ידנית."
@@ -153,9 +160,11 @@ function onGpsSuccess(p){
   resetGpsBtn();
 }
 function onGpsError(err){
+  hideResults();
   showMessage(gpsErrorMessage(err),"error");
   fallback.classList.add("show");
   resetGpsBtn();
+  msg.scrollIntoView({behavior:"smooth",block:"nearest"});
 }
 function requestNearestPolling(){
   clearMessage();
