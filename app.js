@@ -95,6 +95,11 @@ function showMessage(text,type="info"){msg.textContent=text;msg.className=`messa
 function clearMessage(){msg.className="message";msg.textContent=""}
 
 const isMobile=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+const isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+function isSafariBrowser(){
+  const ua=navigator.userAgent||"";
+  return /Safari/i.test(ua)&&!/CriOS|FxiOS|EdgiOS|Chrome|Chromium|OPR|Edg/i.test(ua);
+}
 function isInAppBrowser(){
   const ua=navigator.userAgent||"";
   return /FBAN|FBAV|Instagram|WhatsApp|Line\/|Twitter|LinkedInApp|Telegram|Messenger/i.test(ua);
@@ -107,10 +112,35 @@ function gpsErrorMessage(err){
   if(!window.isSecureContext) return "GPS זמין רק בחיבור מאובטח (HTTPS). פתחו את הקישור ב-Safari או Chrome.";
   if(isInAppBrowser()) return "הדפדפן שבו פתחתם את הקישור (למשל וואטסאפ) חוסם GPS. לחצו על ⋯ ובחרו «פתיחה בדפדפן».";
   if(!err) return "לא הצלחנו לאתר מיקום. אפשר לבחור יישוב ידנית.";
-  if(err.code===1) return "הגישה למיקום נחסמה. בהגדרות הדפדפן/הטלפון אפשרו מיקום לאתר זה, או בחרו יישוב ידנית.";
-  if(err.code===2) return "שירותי המיקום כבויים או לא זמינים כרגע. אפשר לבחור יישוב ידנית.";
-  if(err.code===3) return "איתור המיקום לקח יותר מדי זמן. נסו שוב או בחרו יישוב ידנית.";
+  if(err.code===1){
+    if(isSafariBrowser()) return "Safari חוסם מיקום לאתר זה. הגדרות iPhone ← Safari ← מיקום: «שאל» או «בזמן שימוש». או: הגדרות ← פרטיות ← שירותי מיקום ← Safari — ודאו שמופעל. אפשר גם לבחור יישוב ידנית.";
+    return "הגישה למיקום נחסמה. בהגדרות הדפדפן/הטלפון אפשרו מיקום לאתר זה, או בחרו יישוב ידנית.";
+  }
+  if(err.code===2) return "שירותי המיקום כבויים או לא זמינים כרגע. ודאו ש«שירותי מיקום» פועלים בהגדרות ה-iPhone. אפשר לבחור יישוב ידנית.";
+  if(err.code===3) return isSafariBrowser()
+    ? "Safari לא הצליח לאתר מיקום בזמן. נסו שוב בחוץ/ליד חלון, או בחרו יישוב ידנית."
+    : "איתור המיקום לקח יותר מדי זמן. נסו שוב או בחרו יישוב ידנית.";
   return "לא הצלחנו לאתר מיקום. אפשר לבחור יישוב ידנית.";
+}
+function geoOptions(highAccuracy){
+  return {
+    enableHighAccuracy:highAccuracy,
+    timeout:isIOS?(highAccuracy?30000:18000):isMobile?20000:10000,
+    maximumAge:highAccuracy?0:isIOS?300000:60000
+  };
+}
+function requestGeoPosition(onSuccess,onError,{highAccuracy=false,allowRetry=true}={}){
+  navigator.geolocation.getCurrentPosition(
+    onSuccess,
+    err=>{
+      if(allowRetry&&isIOS&&!highAccuracy&&err&&err.code===3){
+        requestGeoPosition(onSuccess,onError,{highAccuracy:true,allowRetry:false});
+        return;
+      }
+      onError(err);
+    },
+    geoOptions(highAccuracy)
+  );
 }
 function onGpsSuccess(p){
   const nearest=data.map(x=>({...x,distance:distanceKm(p.coords.latitude,p.coords.longitude,x.lat,x.lng)})).sort((a,b)=>a.distance-b.distance).slice(0,4);
@@ -133,7 +163,7 @@ function requestNearestPolling(){
   if(!window.isSecureContext||isInAppBrowser()){onGpsError(null);fallback.classList.add("show");return}
   gpsBtn.disabled=true;
   gpsText.textContent="מאתרים מיקום...";
-  navigator.geolocation.getCurrentPosition(onGpsSuccess,onGpsError,{timeout:isMobile?20000:10000,maximumAge:0,enableHighAccuracy:true});
+  requestGeoPosition(onGpsSuccess,onGpsError,{highAccuracy:!isIOS});
 }
 
 let timer;
